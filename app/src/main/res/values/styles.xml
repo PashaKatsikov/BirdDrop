@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.BirdDrop" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/accent_green</item>
+        <item name="colorPrimaryVariant">@color/button_green_dark</item>
+        <item name="colorSecondary">@color/accent_orange</item>
+        <item name="android:statusBarColor">@color/deep_navy</item>
+        <item name="android:navigationBarColor">@color/deep_navy</item>
+        <item name="android:windowBackground">@color/deep_navy</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <style name="Theme.BirdDrop.Loading" parent="Theme.BirdDrop">
+        <item name="android:windowBackground">@color/black</item>
+    </style>
+
+    <style name="BirdDrop.GreenButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:letterSpacing">0.06</item>
+        <item name="backgroundTint">@color/button_green</item>
+        <item name="cornerRadius">18dp</item>
+        <item name="rippleColor">#59FFFFFF</item>
+    </style>
+
+    <style name="BirdDrop.SecondaryButton" parent="BirdDrop.GreenButton">
+        <item name="backgroundTint">@color/button_violet</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="BirdDrop.Title" parent="">
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:shadowColor">#99000000</item>
+        <item name="android:shadowDx">0</item>
+        <item name="android:shadowDy">3</item>
+        <item name="android:shadowRadius">6</item>
+    </style>
+</resources>

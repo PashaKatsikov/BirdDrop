@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sky_blue">#4FB3FF</color>
+    <color name="deep_navy">#131C36</color>
+    <color name="panel_navy">#E61B2647</color>
+    <color name="panel_navy_soft">#B31B2647</color>
+    <color name="accent_green">#57D46A</color>
+    <color name="accent_orange">#FF8C2A</color>
+    <color name="accent_gold">#FFC93C</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="progress_track">#59FFFFFF</color>
+    <color name="progress_fill">#FFC93C</color>
+    <color name="button_green">#3CCF5A</color>
+    <color name="button_green_dark">#25913C</color>
+    <color name="button_violet">#6A5ACD</color>
+    <color name="overlay_dark">#C4000814</color>
+    <color name="star_empty">#3C4A72</color>
+    <color name="locked_grey">#66233152</color>
+</resources>
