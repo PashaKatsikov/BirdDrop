@@ -21,3 +21,7 @@ _tmp_preview.png
 *.keystore
 keystore.properties
 app/keystore.properties
+
+# Gray part — per-project seed + credentials, never commit
+gray.properties
+app/google-services.json
