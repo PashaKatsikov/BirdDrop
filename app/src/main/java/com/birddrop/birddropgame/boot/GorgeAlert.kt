@@ -22,9 +22,10 @@ import com.birddrop.birddropgame.env.PrefStore
 /**
  * Push-notification permission screen, shown before the WebView.
  *
- * Skip postpones it for three days. Accept hands the user the system dialog and
- * retires this screen for good, whichever way that dialog is answered — see
- * [PrefStore.notifPromoClosed] and pitfalls #36.
+ * Skip postpones it (3 days by default, see [PrefStore.snoozeNotifPrompt]).
+ * Accept hands the user the system dialog and retires this screen for good,
+ * whichever way that dialog is answered — see [PrefStore.notifPromoClosed]
+ * and pitfalls #36.
  *
  * Buttons: ACCEPT  /  SKIP
  * Assets: portrait/landscape branded PNG backgrounds.

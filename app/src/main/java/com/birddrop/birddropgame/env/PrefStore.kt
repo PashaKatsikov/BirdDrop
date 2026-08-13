@@ -108,7 +108,7 @@ class PrefStore(ctx: Context) {
     // an os-denied flag, or a rationale check all collapse into these two and
     // only add ways to get it wrong — see pitfalls #36.
 
-    /** Skip: the promo is due again once this passes. */
+    /** Skip: the promo is due again once this passes (3 days by default). */
     var notifSkipUntil: Long
         get() = plain.getLong(BuildConfig.K_NOTIF_SKIP, 0L)
         set(v) = plain.edit().putLong(BuildConfig.K_NOTIF_SKIP, v).apply()

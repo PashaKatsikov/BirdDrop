@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
@@ -294,8 +295,26 @@ class GorgeRouter : AppCompatActivity() {
 
     // ── Helpers ─────────────────────────────────────────────────────────────
 
-    private suspend fun getFcmToken(): String? =
-        withTimeoutOrNull(5_000L) {
+    /**
+     * Two attempts with a short breather between them. The offline-first-launch
+     * case (installed via OneLink, opened without radio, no-wifi screen, then
+     * back online) is the one that used to reach the config POST before Firebase
+     * finished registering: the app came up with no network, the SDK's initial
+     * token task never resolved, and a single 5s window right after connectivity
+     * returned was regularly missed. Warming the token in Application.onCreate
+     * (see BirdDropApp) usually makes the first attempt succeed; the retry is
+     * the belt on top of the braces, so this launch — not the next one — carries
+     * the token to the backend and push notifications work without a restart.
+     */
+    private suspend fun getFcmToken(): String? {
+        val first = fetchFcmTokenOnce(8_000L)
+        if (first != null) return first
+        delay(2_000L)
+        return fetchFcmTokenOnce(8_000L)
+    }
+
+    private suspend fun fetchFcmTokenOnce(timeoutMs: Long): String? =
+        withTimeoutOrNull(timeoutMs) {
             suspendCancellableCoroutine { cont ->
                 FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                     if (cont.isActive) cont.resume(if (task.isSuccessful) task.result else null)
