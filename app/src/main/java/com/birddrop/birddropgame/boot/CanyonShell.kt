@@ -37,6 +37,7 @@ import com.birddrop.birddropgame.attr.LinkMon
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -144,28 +145,8 @@ class CanyonShell : AppCompatActivity() {
         Trace.i(TAG, "loading initial URL (warm=${warmPush != null}, cold=${coldPush != null})")
         wv.loadUrl(initial)
 
-        // Connectivity monitoring — react instantly on OS callback.
-        scope.launch {
-            wire.connectivityFlow.collect { online ->
-                if (!online) {
-                    Trace.i(TAG, "Connectivity lost (callback) → GorgeOffline")
-                    goOffline()
-                }
-            }
-        }
-
-        // Heartbeat — covers the case where the page is already loaded and the user
-        // turns off the internet: no WebView request fails, so we actively probe.
-        scope.launch {
-            while (true) {
-                delay(Env.heartbeatMs)
-                if (navigatedOffline) continue
-                if (!wire.isConnected()) {
-                    Trace.i(TAG, "Heartbeat: no network → GorgeOffline")
-                    goOffline()
-                }
-            }
-        }
+        // Connectivity watchdogs are NOT started here — they only run while the
+        // shell is actually in front of the user. See [startConnectivityWatch].
 
         scope.launch {
             delay(Env.safeAreaDelayMs)
@@ -258,8 +239,6 @@ class CanyonShell : AppCompatActivity() {
         val fresh = FrameLayout(this).apply {
             setBackgroundColor(COVER_BACKDROP)
             isClickable = true
-            // Just the frozen snapshot of the page being left — no spinner or any
-            // other loading indicator, by request. The new page loads behind it.
             if (shot != null && !shot.isRecycled) {
                 addView(
                     ImageView(this@CanyonShell).apply {
@@ -281,7 +260,6 @@ class CanyonShell : AppCompatActivity() {
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
         )
-        // A page that never reports back must not hold the screen for good.
         scope.launch {
             delay(COVER_MAX_MS)
             if (cover === fresh) {
@@ -368,11 +346,6 @@ class CanyonShell : AppCompatActivity() {
             // shouldOverrideUrlLoading does not see every server-side 30x, so the
             // URL the engine actually committed to is the other half of the trail.
             if (url != BLANK) deepestHop = url
-            // Every navigation is covered until it fully finishes, so the user
-            // never sees an unloaded or half-drawn page. Mid-chain the cover is
-            // already up (raiseCover keeps it); at the start of a fresh
-            // navigation we grab the page being left so the cover shows it
-            // rather than a bare loading screen.
             if (url != BLANK) raiseCover(if (cover == null) lastShownBitmap else null)
             Trace.i(TAG, "onPageStarted")
         }
@@ -425,8 +398,6 @@ class CanyonShell : AppCompatActivity() {
             injectSafeAreaKill()
             view.evaluateJavascript(keyboard.script, null)
             dropCover()
-            // Once the cover is off and this page is actually on screen, capture
-            // it so the next navigation can keep the user on it while it loads.
             scope.launch {
                 delay(COVER_LINGER_MS + 250L)
                 refreshSnapshot()
@@ -588,8 +559,114 @@ class CanyonShell : AppCompatActivity() {
 
     @Volatile private var navigatedOffline = false
 
+    /** True only between onStart and onStop — see [startConnectivityWatch]. */
+    @Volatile private var foreground = false
+
+    /**
+     * Holds the connectivity watchdogs. Deliberately separate from [scope],
+     * which lives from onCreate to onDestroy: a backgrounded shell must not
+     * watch the network at all.
+     *
+     * While the app sits in the background, Doze and App Standby take the
+     * network away from the process, the screen turns off and Wi-Fi may be
+     * dropped by the power policy — so `activeNetwork` legitimately reports
+     * nothing. A watchdog running there concludes the user is offline and
+     * calls startActivity(GorgeOffline) from the background, which puts the
+     * no-wifi screen into the task stack. The user then finds it waiting for
+     * them on return, with the connection never having been interrupted.
+     */
+    private var watchScope: CoroutineScope? = null
+
+    /** Pending "is the network really gone?" verification. */
+    private var offlineVerifyJob: Job? = null
+
+    private fun startConnectivityWatch() {
+        if (watchScope != null) return
+        val s = CoroutineScope(Dispatchers.Main + SupervisorJob())
+        watchScope = s
+
+        // React on OS callbacks, but never on a single transient `false`:
+        // a Wi-Fi ↔ mobile handover or a VPN re-validation emits a brief
+        // `onLost` before the next network reports `onAvailable`, and
+        // `distinctUntilChanged` does not collapse a `true → false → true`.
+        s.launch {
+            wire.connectivityFlow.collect { online ->
+                if (online) cancelOfflineCheck("network back")
+                else scheduleOfflineCheck("connectivity callback")
+            }
+        }
+
+        // Heartbeat — covers the case where the page is already loaded and the
+        // user turns the internet off: no WebView request fails, so nothing
+        // reports an error and we have to probe actively.
+        s.launch {
+            while (true) {
+                delay(Env.heartbeatMs)
+                if (navigatedOffline) continue
+                if (!wire.isConnected()) scheduleOfflineCheck("heartbeat")
+            }
+        }
+    }
+
+    private fun stopConnectivityWatch() {
+        offlineVerifyJob = null
+        watchScope?.cancel()
+        watchScope = null
+    }
+
+    private fun cancelOfflineCheck(reason: String) {
+        if (offlineVerifyJob?.isActive != true) return
+        Trace.i(TAG, "offline check cancelled ($reason)")
+        offlineVerifyJob?.cancel()
+        offlineVerifyJob = null
+    }
+
+    /**
+     * Confirms a suspected connectivity loss before acting on it. Runs in
+     * [watchScope], so going to background cancels it outright.
+     *
+     * Polls instead of waiting once: coming back from a locked screen, Wi-Fi
+     * can take several seconds to reassociate, and a single check landing in
+     * that window reads as offline. The TCP probe is the last word — it can
+     * only keep the user on the page, never send them off it, so a network
+     * whose capabilities are unreadable but which actually carries traffic
+     * is treated as online.
+     */
+    private fun scheduleOfflineCheck(reason: String) {
+        val s = watchScope ?: return
+        if (navigatedOffline || !foreground) return
+        if (offlineVerifyJob?.isActive == true) return
+        offlineVerifyJob = s.launch {
+            val budget = Env.connectGraceMs * 2
+            Trace.i(TAG, "$reason → verifying for ${budget}ms")
+            var waited = 0L
+            while (waited < budget) {
+                delay(VERIFY_STEP_MS)
+                waited += VERIFY_STEP_MS
+                if (navigatedOffline || !foreground) return@launch
+                if (wire.isConnected()) {
+                    Trace.i(TAG, "$reason cleared — network is up")
+                    return@launch
+                }
+            }
+            if (navigatedOffline || !foreground) return@launch
+            if (wire.hasRealInternet()) {
+                Trace.i(TAG, "$reason cleared — probe reached the network")
+                return@launch
+            }
+            Trace.i(TAG, "$reason confirmed → GorgeOffline")
+            goOffline()
+        }
+    }
+
     private fun goOffline() {
         if (navigatedOffline) return
+        // Never launch the no-wifi screen from the background: it would sit in
+        // the task stack and greet a user whose connection was never down.
+        if (!foreground) {
+            Trace.i(TAG, "offline suppressed — shell is in the background")
+            return
+        }
         navigatedOffline = true
         val cur = lastMainFrameUrl ?: wv.url
         try { wv.stopLoading(); wv.loadUrl(BLANK) } catch (_: Exception) {}
@@ -746,6 +823,8 @@ class CanyonShell : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         navigatedOffline = false
+        foreground = true
+        startConnectivityWatch()
         PushBusCanyon.onWarmUrl = { url ->
             runOnUiThread {
                 Trace.i(TAG, "PushBusCanyon warm URL → loading")
@@ -759,6 +838,8 @@ class CanyonShell : AppCompatActivity() {
     }
 
     override fun onStop() {
+        foreground = false
+        stopConnectivityWatch()
         if (PushBusCanyon.onWarmUrl != null) PushBusCanyon.onWarmUrl = null
         super.onStop()
     }
@@ -766,6 +847,8 @@ class CanyonShell : AppCompatActivity() {
     override fun onDestroy() {
         if (PushBusCanyon.onWarmUrl != null) PushBusCanyon.onWarmUrl = null
         PushBusCanyon.shellAlive = false
+        foreground = false
+        stopConnectivityWatch()
         scope.cancel()
         snapHandler.removeCallbacksAndMessages(null)
         lastShownBitmap?.recycle()
@@ -806,5 +889,9 @@ class CanyonShell : AppCompatActivity() {
          *  engine finish unwinding the failed navigation, short enough to be
          *  invisible. */
         private const val RETRY_PAUSE_MS = 60L
+
+        /** How often a suspected connectivity loss is re-sampled while the
+         *  verification budget runs down. */
+        private const val VERIFY_STEP_MS = 700L
     }
 }
