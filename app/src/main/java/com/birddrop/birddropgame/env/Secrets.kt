@@ -9,9 +9,10 @@ import com.birddrop.birddropgame.BuildConfig
  *
  * Three interchangeable variants live here. Which one the runtime uses for a
  * particular build is chosen by [BuildConfig.CIPHER_VARIANT], which the build
- * script sets from `gray.codecVariant` in gray.properties. rebrand.py rotates
- * that value across projects, so two apps never share both the algorithm and
- * the parameters — see .cursor/rules/kotlin_fingerprint.mdc.
+ * script derives from `gray.seed` unless `gray.codecVariant` names one
+ * explicitly. All three must keep working: the variant moves between projects
+ * and nothing else in the code changes with it — see
+ * .cursor/rules/kotlin_fingerprint.mdc.
  *
  * The class name and file path themselves are meant to be renamed per project;
  * rebrand.py does that automatically.

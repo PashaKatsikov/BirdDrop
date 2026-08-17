@@ -26,10 +26,16 @@
 #     install is seen as a first launch. Pick it once, before the first build.
 gray.seed = CHANGE-ME-EVERY-PROJECT
 
-# Which of the three interchangeable codec shapes Secrets.kt implements.
-# rebrand.py rewrites both this line and the decoder body together; the build
-# fails if the two disagree, so never edit it by hand.
-gray.codecVariant = 1
+# Which of the three interchangeable codec shapes the runtime uses. Secrets.kt
+# implements all three and picks by BuildConfig.CIPHER_VARIANT, so this is a
+# plain configuration value — nothing in the code needs editing to match it, and
+# nothing breaks if you change it (the secrets are re-encoded on every build).
+#
+# Leave it BLANK. The build then derives it from gray.seed, which is what keeps
+# two projects off the same algorithm shape. Set it explicitly only to dodge a
+# collision the derivation produced — check the siblings first:
+#   rg -n '^gray\.codecVariant' <portfolio>\*\gray.properties
+gray.codecVariant =
 
 # ══ 2. IDENTITY ══════════════════════════════════════════════════════════════
 gray.bundleId    = com.birddrop.birddropgame

@@ -53,7 +53,8 @@ import kotlinx.coroutines.launch
  *  - A loading cover over redirect hops and failed loads, so the user only ever sees
  *    a finished page — never an intermediate hop or the WebView's own error page.
  *  - Cold + warm push URL routing through Intent extras / onNewIntent.
- *  - User-Agent ends with "appid/<bundleId> appname/<AppName>".
+ *  - User-Agent comes from [UserAgent]: a plain Chrome string, with the partner
+ *    app-identity suffix left off (gray.uaAppSuffix).
  */
 class CanyonShell : AppCompatActivity() {
 

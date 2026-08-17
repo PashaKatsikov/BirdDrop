@@ -25,3 +25,7 @@ app/keystore.properties
 # Gray part — per-project seed + credentials, never commit
 gray.properties
 app/google-services.json
+
+# Portfolio inventory artefacts (AGENT_PORT_PLAYBOOK.md §1)
+_portfolio_*
+_apk_extract/

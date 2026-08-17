@@ -117,7 +117,7 @@ every redirect", "push opens the old page") rather than from a stack trace.
    ```powershell
    adb shell pm clear <pkg>
    adb logcat -c
-   adb logcat -s WelcomePortal:V TrackingDispatch:V ReachDispatch:V StreamPortal:V AppsFlyer_6.16.2:V
+   adb logcat -s WelcomePortal:V TrackingDispatch:V ReachDispatch:V StreamPortal:V AppsFlyer_6.18.1:V
    ```
 
 7. **Test the TZ scenarios.** First launch gray / white / offline-then-online

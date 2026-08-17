@@ -37,7 +37,7 @@
              the manifest placeholder below. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_notif_flame" />
+            android:resource="@drawable/ic_notif_ember" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="${grayFcmChannelId}" />
@@ -50,7 +50,7 @@
             android:screenOrientation="sensor"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.App.FullScreen">
+            android:theme="@style/Theme.Canyon.Rim">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -76,21 +76,21 @@
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:windowSoftInputMode="adjustResize"
             android:hardwareAccelerated="true"
-            android:theme="@style/Theme.App.Stream" />
+            android:theme="@style/Theme.Canyon.Shell" />
 
         <activity
             android:name=".boot.GorgeAlert"
             android:exported="false"
             android:screenOrientation="sensor"
             android:configChanges="orientation|screenSize|keyboardHidden"
-            android:theme="@style/Theme.App.FullScreen" />
+            android:theme="@style/Theme.Canyon.Rim" />
 
         <activity
             android:name=".boot.GorgeOffline"
             android:exported="false"
             android:screenOrientation="sensor"
             android:configChanges="orientation|screenSize|keyboardHidden"
-            android:theme="@style/Theme.App.FullScreen" />
+            android:theme="@style/Theme.Canyon.Rim" />
 
         <!-- ══ White part — the game (goNative lands on MainMenuActivity) ══ -->
         <activity

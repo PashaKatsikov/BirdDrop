@@ -105,7 +105,7 @@ class FcmCanyon : FirebaseMessagingService() {
         )
 
         val builder = NotificationCompat.Builder(ctx, BuildConfig.FCM_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notif_flame)
+            .setSmallIcon(R.drawable.ic_notif_ember)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

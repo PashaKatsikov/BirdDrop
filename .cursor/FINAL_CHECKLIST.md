@@ -28,7 +28,7 @@ Logcat with every tag that matters (pitfalls #28) — release builds strip
 
 ```powershell
 adb logcat -c
-adb logcat -s WelcomePortal:V TrackingDispatch:V ReachDispatch:V StreamPortal:V AppEntry:V AppsFlyer_6.16.2:V
+adb logcat -s WelcomePortal:V TrackingDispatch:V ReachDispatch:V StreamPortal:V AppEntry:V AppsFlyer_6.18.1:V
 ```
 
 ---

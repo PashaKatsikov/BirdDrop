@@ -198,7 +198,7 @@ gradlew assembleDebug
 adb install -r app\build\outputs\apk\debug\app-debug.apk
 adb shell pm clear <applicationId>
 adb logcat -c
-adb logcat -s WelcomePortal:V TrackingDispatch:V ReachDispatch:V StreamPortal:V AppsFlyer_6.16.2:V
+adb logcat -s WelcomePortal:V TrackingDispatch:V ReachDispatch:V StreamPortal:V AppsFlyer_6.18.1:V
 ```
 
 The healthy sequence, in order (`rules/kotlin_launch_flow.mdc` §7):

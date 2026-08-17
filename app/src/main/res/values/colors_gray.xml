@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Colors used by the gray-part themes (Theme.App*). Kept separate from the
+<!-- Colors used by the gray-part themes (Theme.Canyon*). Kept separate from the
      game palette so a portfolio rebrand touches one file. -->
 <resources>
     <color name="bg_dark">#3A0A0C</color>

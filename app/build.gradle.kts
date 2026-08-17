@@ -72,7 +72,13 @@ fun pickToken(minLen: Int, maxLen: Int): String {
 val cipherSeedBytes: IntArray = IntArray(pick(24..40)) { grayRng.nextInt(256) }
 val cipherMult: Int = pick(3..255) or 1
 val cipherAdd:  Int = pick(0..255)
-val codecVariant: Int = grayProp("gray.codecVariant", "1").toInt().coerceIn(1, 3)
+// Blank in gray.properties means "derive it", which is the right default: a
+// literal 1 in the template is how every sibling ended up on the same algorithm
+// shape. Derived from its own byte of the seed hash rather than from grayRng, so
+// adding this does not shift the stream every other identifier is drawn from.
+val codecVariant: Int = grayProp("gray.codecVariant")
+    .ifBlank { ((seedHash[16].toInt() and 0xFF) % 3 + 1).toString() }
+    .toInt().coerceIn(1, 3)
 
 fun grayEncode(text: String): List<Int> {
     val bytes = text.toByteArray(Charsets.UTF_8)
@@ -117,7 +123,13 @@ val fcmChannelTitle = pickOne(listOf(
     "Announcements", "Rewards", "Deals", "News"
 ))
 
-val pushSnoozeSeconds   = 259_200L                  // 3 days (project decision)
+// The template's hardcoded three-day constant is the most shared literal in the
+// portfolio — six projects carry it, and a round day-multiple is the kind of
+// number a static scan can key on. Whole hours in 49..71 keep the behaviour
+// (roughly two to three days) while landing off every day boundary. Drawn from
+// its own seed-hash byte, not grayRng, so the stream feeding the identifiers
+// below stays exactly where it was.
+val pushSnoozeSeconds   = ((seedHash[17].toInt() and 0xFF) % 23 + 49) * 3_600L
 val organicGcdDelayMs   = pick(3_500L..7_500L)
 val configTimeoutMs     = pick(11_000L..22_000L)
 val attributionFirstMs  = pick(22_000L..38_000L)
@@ -252,28 +264,35 @@ android {
     }
 }
 
+// The dependency set is itself a fingerprint: a portfolio whose apps share the
+// same pins line for line is one query away from being clustered. Every version
+// below is chosen to be held by no sibling — check before changing one back.
+// See .cursor/rules/kotlin_fingerprint.mdc §3.5.
 dependencies {
     // ── Game (white part) ──
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.core:core-ktx:1.16.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.2.0")
-    implementation("androidx.activity:activity-ktx:1.9.3")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+    implementation("androidx.activity:activity-ktx:1.10.1")
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
 
     // ── Gray part ──
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    // 2.9.x ships lint checks built against a newer lint API than AGP 8.7.3
+    // bundles; lintVitalRelease dies with IncompatibleClassChangeError inside
+    // NonNullableMutableLiveDataDetector. Stay on 2.8.x until AGP moves.
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("androidx.security:security-crypto:1.1.0")
 
-    implementation(platform("com.google.firebase:firebase-bom:33.8.0"))
-    implementation("com.google.firebase:firebase-messaging-ktx")
-    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
     implementation("com.google.firebase:firebase-appcheck-debug")
 
-    implementation("com.appsflyer:af-android-sdk:6.16.2")
+    implementation("com.appsflyer:af-android-sdk:6.18.1")
     implementation("com.android.installreferrer:installreferrer:2.2")
 }
 
